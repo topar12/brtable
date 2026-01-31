@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id                       String       @id @default(cuid())
+  brand                    String
+  name                     String
+  species                  String       @default("DOG")
+  lifestage                String?
+  foodtype                 String?
+  mainprotein              String?
+  isgrainfree              Boolean?     @default(false)
+  crudeprotein             Float
+  crudefat                 Float
+  crudefiber               Float
+  crudeash                 Float
+  crudemoisture            Float
+  hasaafco                 Boolean?     @default(false)
+  hasfediaf                Boolean?     @default(false)
+  createdat                DateTime?    @default(now()) @db.Timestamp(6)
+  updatedat                DateTime?    @default(now()) @db.Timestamp(6)
+  caloriesestimatedper100g Float?
+  caloriesestimationnote   String?
+  caloriesper100g          Float?
+  caloriessource           String?
+  priority                 Int?         @default(0)
+  targetconditions         String[]
+  image                    String?
+  ProductSKU               ProductSKU[]
+}
+
+model ProductSKU {
+  id              String           @id
+  productid       String
+  weight          Float
+  price           Int
+  image           String?
+  purchaselink    String?
+  createdat       DateTime?        @default(now()) @db.Timestamp(6)
+  updatedat       DateTime?        @default(now()) @db.Timestamp(6)
+  clickcount      Int?             @default(0)
+  Product         Product          @relation(fields: [productid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sku_price_rollups sku_price_rollups?
+}
+
+model sku_price_rollups {
+  sku_id        String     @id
+  current_price Int
+  year_min      Int
+  year_max      Int
+  updated_at    DateTime?  @default(now()) @db.Timestamp(6)
+  ProductSKU    ProductSKU @relation(fields: [sku_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sku_id])
+}
+
+model dog_breeds {
+  id              BigInt    @id @default(autoincrement())
+  slug            String    @unique
+  name_ko         String
+  name_en         String?
+  aliases         String[]
+  popularity_rank Int?
+  is_mixed        Boolean?  @default(false)
+  is_unknown      Boolean?  @default(false)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_at      DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model cat_breeds {
+  id              BigInt    @id @default(autoincrement())
+  slug            String    @unique
+  name_ko         String
+  name_en         String?
+  aliases         String[]
+  popularity_rank Int?
+  is_mixed        Boolean?  @default(false)
+  is_unknown      Boolean?  @default(false)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_at      DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model pet_profiles {
+  id            String    @id @default(cuid())
+  user_id       String    @db.Uuid
+  name          String
+  species       String    // "DOG" | "CAT"
+  breed_id      String?
+  breed_name    String?
+  weight_kg     Float
+  is_neutered   Boolean   @default(false)
+  activity_level Int      @default(3) // 1~5
+  allergies     String[]
+  birth_date    DateTime?
+  image_url     String?
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @db.Timestamp(6)
+
+  @@index([user_id])
+}
+
+
