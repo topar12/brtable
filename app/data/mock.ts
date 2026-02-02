@@ -44,6 +44,7 @@ export type PetProfile = {
   isNeutered: boolean;
   activityLevel: 1 | 2 | 3 | 4 | 5;
   allergies: string[];
+  birthDate: string | null;
 };
 
 export const breeds: Breed[] = [
@@ -159,6 +160,7 @@ export const defaultPet: PetProfile = {
   isNeutered: true,
   activityLevel: 3,
   allergies: ["닭"],
+  birthDate: null,
 };
 
 export function getProductById(id: string) {

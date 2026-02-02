@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/pets";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -18,6 +18,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function PetsPage() {
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [profiles, setProfiles] = useState<DbPetProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,13 +69,14 @@ export default function PetsPage() {
       <div className="min-h-screen bg-[#F2F4F6] pb-24">
         <div className="max-w-md mx-auto min-h-screen flex flex-col px-6 py-8">
           <header className="mb-8">
-            <Link
-              to="/"
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
               className="inline-flex items-center text-[#8B95A1] hover:text-[#191F28] transition-colors mb-6"
             >
               <span className="mr-1">←</span>
               <span className="text-sm">돌아가기</span>
-            </Link>
+            </button>
             <h1 className="text-[26px] font-bold text-[#191F28]">내 반려동물</h1>
           </header>
 
@@ -112,13 +114,14 @@ export default function PetsPage() {
     <div className="min-h-screen bg-[#F2F4F6] pb-24">
       <div className="max-w-md mx-auto min-h-screen flex flex-col px-6 py-8">
         <header className="mb-6">
-          <Link
-            to="/"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
             className="inline-flex items-center text-[#8B95A1] hover:text-[#191F28] transition-colors mb-4"
           >
             <span className="mr-1">←</span>
             <span className="text-sm">돌아가기</span>
-          </Link>
+          </button>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[26px] font-bold text-[#191F28] mb-1">내 반려동물</h1>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import type { Route } from "./+types/welcome";
 import { useAuth } from "../hooks/useAuth";
-import { upsertMyUserProfile, checkProfileExists } from "../utils/userProfiles";
+import { upsertMyUserProfile, checkProfileExists, checkNicknameAvailable } from "../utils/userProfiles";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -114,10 +114,24 @@ export default function Welcome() {
   const handleSubmit = async () => {
     if (!user?.id) return;
 
+    const trimmedNickname = form.nickname.trim();
+    const { available, error: nicknameError } = await checkNicknameAvailable(
+      trimmedNickname,
+      user.id
+    );
+    if (nicknameError) {
+      alert("닉네임 확인에 실패했습니다: " + nicknameError);
+      return;
+    }
+    if (!available) {
+      alert("이미 사용 중인 닉네임입니다.");
+      return;
+    }
+
     setIsLoading(true);
     const { error } = await upsertMyUserProfile({
       user_id: user.id,
-      nickname: form.nickname.trim(),
+      nickname: trimmedNickname,
       has_pet: form.hasPet ?? false,
       interests: form.interests,
       region: form.region || null,

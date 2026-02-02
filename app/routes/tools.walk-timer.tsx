@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/tools.walk-timer";
 import { useWalkTimer } from "../hooks/useWalkTimer";
 import { formatHms, formatKoDateTime, formatDurationWords } from "../utils/time";
 import {
-  loadWalkSessions,
-  addWalkSession,
+  fetchWalkSessions,
+  createWalkSession,
   deleteWalkSession,
-  type WalkSessionV1,
+  type WalkSession,
 } from "../utils/walkSessions";
-import { useStoredProfile } from "../hooks/useStoredProfile";
+import { useAuth } from "../hooks/useAuth";
+import { fetchPetProfiles, type DbPetProfile } from "../utils/petProfiles";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -20,41 +21,138 @@ export function meta({}: Route.MetaArgs) {
 
 export default function WalkTimer() {
   const { status, elapsedMs, start, pause, resume, stop, reset } = useWalkTimer();
-  const { profile } = useStoredProfile();
-  const [sessions, setSessions] = useState<WalkSessionV1[]>([]);
+  const { user, isAuthenticated } = useAuth();
+  const [sessions, setSessions] = useState<WalkSession[]>([]);
+  const [pets, setPets] = useState<DbPetProfile[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState("");
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [distance, setDistance] = useState("");
   const [notes, setNotes] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
-    setSessions(loadWalkSessions());
   }, []);
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      setPets([]);
+      setSessions([]);
+      setSessionsLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    const load = async () => {
+      setSessionsLoading(true);
+      setSessionsError(null);
+
+      try {
+        const petData = await fetchPetProfiles(user.id);
+        if (!mounted) return;
+        setPets(petData);
+        if (petData.length > 0) {
+          setSelectedPetId((prev) => prev || petData[0].id);
+        }
+      } catch (error) {
+        if (!mounted) return;
+        setPets([]);
+        setSessionsError(
+          error instanceof Error ? error.message : "반려동물 정보를 불러오지 못했어요."
+        );
+      }
+
+      try {
+        const sessionData = await fetchWalkSessions(user.id);
+        if (!mounted) return;
+        setSessions(sessionData);
+      } catch (error) {
+        if (!mounted) return;
+        setSessions([]);
+        setSessionsError(
+          error instanceof Error ? error.message : "산책 기록을 불러오지 못했어요."
+        );
+      } finally {
+        if (mounted) setSessionsLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, user?.id]);
+
+  const selectedPet = useMemo(
+    () => pets.find((pet) => pet.id === selectedPetId) ?? pets[0],
+    [pets, selectedPetId]
+  );
+
+  const filteredSessions = useMemo(() => {
+    if (!selectedPet) return [];
+    return sessions.filter((session) => session.pet_id === selectedPet.id);
+  }, [sessions, selectedPet]);
+
+  const weekStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = (day + 6) % 7;
+    const start = new Date(now);
+    start.setDate(now.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }, []);
+
+  const monthStart = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }, []);
+
+  const weeklyTotalMs = useMemo(() => {
+    return filteredSessions
+      .filter((session) => new Date(session.started_at) >= weekStart)
+      .reduce((sum, session) => sum + session.duration_ms, 0);
+  }, [filteredSessions, weekStart]);
+
+  const monthlyTotalMs = useMemo(() => {
+    return filteredSessions
+      .filter((session) => new Date(session.started_at) >= monthStart)
+      .reduce((sum, session) => sum + session.duration_ms, 0);
+  }, [filteredSessions, monthStart]);
+
+  const handleSave = async () => {
+    if (!user?.id || !selectedPet) return;
     const distanceNum = distance ? parseFloat(distance) : null;
-    addWalkSession({
-      startedAtIso: new Date(Date.now() - elapsedMs).toISOString(),
-      endedAtIso: new Date().toISOString(),
-      durationMs: elapsedMs,
-      distanceKm: distanceNum,
-      notes: notes.trim(),
-      profileSnapshot: {
-        name: profile.name,
-        species: profile.species,
-        weightKg: profile.weightKg,
-      },
-    });
-    reset();
-    setDistance("");
-    setNotes("");
-    setSessions(loadWalkSessions());
+    try {
+      await createWalkSession({
+        user_id: user.id,
+        pet_id: selectedPet.id,
+        pet_name: selectedPet.name,
+        pet_species: selectedPet.species,
+        started_at: new Date(Date.now() - elapsedMs).toISOString(),
+        ended_at: new Date().toISOString(),
+        duration_ms: elapsedMs,
+        distance_km: distanceNum,
+        notes: notes.trim() ? notes.trim() : null,
+      });
+      const updatedSessions = await fetchWalkSessions(user.id);
+      setSessions(updatedSessions);
+      reset();
+      setDistance("");
+      setNotes("");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "저장에 실패했습니다.");
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!user?.id) return;
     if (confirm("정말 삭제하시겠습니까?")) {
-      deleteWalkSession(id);
-      setSessions(loadWalkSessions());
+      await deleteWalkSession(id);
+      const updatedSessions = await fetchWalkSessions(user.id);
+      setSessions(updatedSessions);
     }
   };
 
@@ -109,6 +207,51 @@ export default function WalkTimer() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#F2F4F6] pb-24">
+        <div className="max-w-md mx-auto min-h-screen flex flex-col px-6 py-8">
+          <header className="mb-8">
+            <Link
+              to="/"
+              className="inline-flex items-center text-[#8B95A1] hover:text-[#191F28] transition-colors mb-6"
+            >
+              <span className="mr-1">←</span>
+              <span className="text-sm">돌아가기</span>
+            </Link>
+            <h1 className="text-[26px] font-bold text-[#191F28]">산책 타이머</h1>
+          </header>
+
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="bg-white rounded-[24px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center w-full">
+              <div className="w-20 h-20 bg-blue-50 rounded-[24px] flex items-center justify-center mx-auto mb-6">
+                <span className="text-4xl">🔒</span>
+              </div>
+              <h2 className="text-[20px] font-bold text-[#191F28] mb-3">로그인이 필요합니다</h2>
+              <p className="text-[15px] text-[#8B95A1] mb-8">
+                산책 기록을 저장하려면<br />로그인해주세요.
+              </p>
+              <div className="space-y-3">
+                <Link
+                  to="/login"
+                  className="block w-full py-4 bg-[#3182F6] text-white rounded-[20px] text-[17px] font-bold text-center hover:bg-blue-600 active:scale-[0.98] transition-all"
+                >
+                  로그인하기
+                </Link>
+                <Link
+                  to="/"
+                  className="block w-full py-4 bg-[#F2F4F6] text-[#4E5968] rounded-[20px] text-[17px] font-bold text-center hover:bg-[#E5E8EB] active:scale-[0.98] transition-all"
+                >
+                  홈으로 돌아가기
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F2F4F6] pb-24">
       <div className="max-w-md mx-auto min-h-screen flex flex-col px-6 py-8">
@@ -125,15 +268,56 @@ export default function WalkTimer() {
           <p className="text-[15px] text-[#8B95A1]">산책 시간과 거리를 기록해요</p>
         </header>
 
+        {sessionsError && (
+          <div className="mb-6 p-4 bg-red-50 rounded-[20px]">
+            <p className="text-[14px] text-red-600 text-center">⚠️ {sessionsError}</p>
+          </div>
+        )}
+
+        {/* Pet Selection */}
+        <section className="bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[16px] font-bold text-[#191F28]">산책할 반려동물</h2>
+            {pets.length > 0 && (
+              <span className="text-[12px] text-[#8B95A1]">{pets.length}마리</span>
+            )}
+          </div>
+          {pets.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-[14px] text-[#8B95A1] mb-3">등록된 반려동물이 없어요.</p>
+              <Link
+                to="/onboarding"
+                className="inline-flex items-center justify-center px-4 py-2 bg-[#3182F6] text-white rounded-[14px] text-[14px] font-bold"
+              >
+                반려동물 등록하기
+              </Link>
+            </div>
+          ) : (
+            <select
+              value={selectedPetId}
+              onChange={(e) => setSelectedPetId(e.target.value)}
+              className="w-full px-4 py-3 bg-[#F2F4F6] rounded-[14px] text-[15px] text-[#191F28]"
+            >
+              {pets.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.name} · {pet.species === "DOG" ? "강아지" : "고양이"}
+                </option>
+              ))}
+            </select>
+          )}
+        </section>
+
         {/* Timer Card */}
-        {status !== "stopped" && (
+        {selectedPet && status !== "stopped" && (
           <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mb-6">
             {/* Pet Info */}
             <div className="flex items-center justify-center mb-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-[16px]">
-                <span className="text-xl">{profile.species === "CAT" ? "🐈" : "🐕"}</span>
+                <span className="text-xl">
+                  {selectedPet?.species === "CAT" ? "🐈" : "🐕"}
+                </span>
                 <span className="text-[15px] font-bold text-[#191F28]">
-                  {profile.name || "내 반려동물"}
+                  {selectedPet?.name || "내 반려동물"}
                 </span>
               </div>
             </div>
@@ -151,6 +335,7 @@ export default function WalkTimer() {
               {status === "idle" && (
                 <button
                   onClick={start}
+                  disabled={!selectedPet}
                   className="col-span-2 py-4 bg-[#3182F6] text-white rounded-[20px] text-[17px] font-bold hover:bg-blue-600 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20"
                 >
                   시작
@@ -193,7 +378,7 @@ export default function WalkTimer() {
         )}
 
         {/* Save Form Card */}
-        {status === "stopped" && (
+        {status === "stopped" && selectedPet && (
           <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mb-6">
             <h2 className="text-[18px] font-bold text-[#191F28] mb-6 text-center">
               산책 기록 저장
@@ -259,6 +444,7 @@ export default function WalkTimer() {
               </button>
               <button
                 onClick={handleSave}
+                disabled={!selectedPet}
                 className="py-4 bg-[#3182F6] text-white rounded-[20px] text-[17px] font-bold hover:bg-blue-600 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20"
               >
                 저장
@@ -267,27 +453,53 @@ export default function WalkTimer() {
           </div>
         )}
 
+        {/* Summary Section */}
+        {selectedPet && (
+          <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mb-6">
+            <h2 className="text-[18px] font-bold text-[#191F28] mb-4">산책 요약</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#F2F4F6] rounded-[16px] p-4">
+                <p className="text-[13px] text-[#8B95A1] mb-2">이번주</p>
+                <p className="text-[16px] font-bold text-[#191F28]">
+                  {weeklyTotalMs > 0 ? formatDurationWords(weeklyTotalMs) : "0분"}
+                </p>
+              </div>
+              <div className="bg-[#F2F4F6] rounded-[16px] p-4">
+                <p className="text-[13px] text-[#8B95A1] mb-2">이번달</p>
+                <p className="text-[16px] font-bold text-[#191F28]">
+                  {monthlyTotalMs > 0 ? formatDurationWords(monthlyTotalMs) : "0분"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* History Section */}
         <div className="flex-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[18px] font-bold text-[#191F28]">기록</h2>
-            {sessions.length > 0 && (
+            {filteredSessions.length > 0 && (
               <span className="px-3 py-1 bg-blue-50 text-[#3182F6] rounded-full text-[13px] font-bold">
-                {sessions.length}개
+                {filteredSessions.length}개
               </span>
             )}
           </div>
 
-          {sessions.length === 0 ? (
-            <div className="bg-white rounded-[24px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-[20px] flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🐾</span>
+            {sessionsLoading ? (
+              <div className="bg-white rounded-[24px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center">
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-[15px] text-[#8B95A1]">불러오는 중...</p>
               </div>
-              <p className="text-[16px] text-[#8B95A1]">아직 산책 기록이 없어요.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {sessions.map((session) => (
+            ) : filteredSessions.length === 0 ? (
+              <div className="bg-white rounded-[24px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">🐾</span>
+                </div>
+                <p className="text-[16px] text-[#8B95A1]">아직 산책 기록이 없어요.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+              {filteredSessions.map((session) => (
                 <article
                   key={session.id}
                   className="bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
@@ -295,14 +507,14 @@ export default function WalkTimer() {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="text-[13px] text-[#8B95A1] mb-1">
-                        {formatKoDateTime(session.startedAtIso)}
+                        {formatKoDateTime(session.started_at)}
                       </p>
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">
-                          {session.profileSnapshot.species === "DOG" ? "🐕" : "🐈"}
+                          {session.pet_species === "DOG" ? "🐕" : "🐈"}
                         </span>
                         <span className="text-[16px] font-bold text-[#191F28]">
-                          {session.profileSnapshot.name || "반려동물"}
+                          {session.pet_name || "반려동물"}
                         </span>
                       </div>
                     </div>
@@ -314,16 +526,16 @@ export default function WalkTimer() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-4 mb-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[20px] font-bold text-[#3182F6]">
-                        {formatDurationWords(session.durationMs)}
-                      </span>
-                    </div>
-                    {session.distanceKm && (
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[20px] font-bold text-[#3182F6]">
+                          {formatDurationWords(session.duration_ms)}
+                        </span>
+                      </div>
+                    {session.distance_km && (
                       <div className="flex items-center gap-1 px-3 py-1 bg-emerald-50 rounded-full">
                         <span className="text-[14px] font-bold text-emerald-600">
-                          {session.distanceKm}km
+                          {session.distance_km}km
                         </span>
                       </div>
                     )}

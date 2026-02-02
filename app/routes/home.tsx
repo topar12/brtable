@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/home";
 import { useStoredProfile } from "../hooks/useStoredProfile";
 import { useAuth } from "../hooks/useAuth";
+import { fetchMyUserProfile } from "../utils/userProfiles";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -43,6 +45,14 @@ const tools = [
     to: "/tools/pet-age",
     color: "purple",
   },
+  {
+    id: "community",
+    title: "멍냥커뮤",
+    subtitle: "집사들의 이야기 공간",
+    icon: "🗣️",
+    to: "/community",
+    color: "rose",
+  },
 ];
 
 const colorClasses: Record<string, { bg: string; text: string }> = {
@@ -50,11 +60,34 @@ const colorClasses: Record<string, { bg: string; text: string }> = {
   blue: { bg: "bg-blue-50", text: "text-blue-600" },
   emerald: { bg: "bg-emerald-50", text: "text-emerald-600" },
   purple: { bg: "bg-purple-50", text: "text-purple-600" },
+  rose: { bg: "bg-rose-50", text: "text-rose-600" },
 };
 
 export default function Home() {
   const { profile } = useStoredProfile();
-  const { isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, signOut } = useAuth();
+  const [userNickname, setUserNickname] = useState("");
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      setUserNickname("");
+      return;
+    }
+
+    let isMounted = true;
+    const loadNickname = async () => {
+      const { data } = await fetchMyUserProfile(user.id);
+      const nickname = data?.nickname ?? user.user_metadata?.name ?? "";
+      if (isMounted) {
+        setUserNickname(nickname);
+      }
+    };
+
+    loadNickname();
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, user?.id, user?.user_metadata?.name]);
 
   return (
     <div className="min-h-screen bg-[#F2F4F6] pb-24">
@@ -65,7 +98,10 @@ export default function Home() {
           <div>
             <h1 className="text-[26px] font-bold text-[#191F28] leading-snug">
               반가워요,<br />
-              <span className="text-[#3182F6]">{isAuthenticated ? profile.name : "예비"}</span> 보호자님 👋
+              <span className="text-[#3182F6]">
+                {isAuthenticated ? userNickname || "보호자" : "예비"}
+              </span>{" "}
+              보호자님 👋
             </h1>
             <p className="text-[17px] text-[#8B95A1] mt-2">
               {isAuthenticated ? "오늘도 건강한 하루 볼내세요!" : "반려동물을 위한 실용 도구를 확인핼보세요."}
@@ -75,7 +111,7 @@ export default function Home() {
             {isAuthenticated ? (
               <>
                 <Link
-                  to="/pets"
+                  to="/profile"
                   className="flex items-center gap-1.5 text-[13px] font-bold text-[#3182F6] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
                 >
                   <span>{profile.species === "CAT" ? "🐈" : "🐕"}</span>
@@ -111,7 +147,7 @@ export default function Home() {
         <section className="px-6 mb-8">
           <h2 className="text-[20px] font-bold text-[#191F28] mb-2 px-1">도구 모음</h2>
           <p className="text-[15px] text-[#8B95A1] mb-6 px-1">원하는 도구를 선택해주세요</p>
-          
+
           <div className="grid grid-cols-2 gap-4">
             {tools.map((tool) => {
               const colors = colorClasses[tool.color];
@@ -159,8 +195,8 @@ export default function Home() {
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-xl">✏️</div>
                 <div>
-                  <div className="text-[16px] font-bold text-[#191F28]">프로필 수정</div>
-                  <div className="text-[13px] text-[#8B95A1]">아이의 정보가 바뀌었나요?</div>
+                  <div className="text-[16px] font-bold text-[#191F28]">반려동물 추가</div>
+                  <div className="text-[13px] text-[#8B95A1]">새 반려동물을 등록해요</div>
                 </div>
               </div>
               <span className="text-slate-300">›</span>

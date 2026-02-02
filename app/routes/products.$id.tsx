@@ -43,6 +43,8 @@ export default function ProductDetail() {
   const imageUrl = resolveProductImage(product.image, sku.image);
   const [days, setDays] = useState<30 | 90>(30);
   const { data: priceHistory, isLoading: isHistoryLoading } = usePriceHistory(sku.id, days);
+  const minPrice = sku.priceHistory.length ? Math.min(...sku.priceHistory) : sku.currentPrice;
+  const maxPrice = sku.priceHistory.length ? Math.max(...sku.priceHistory) : sku.currentPrice;
 
   return (
     <div className="bg-[#F2F4F6] min-h-screen pb-28 relative">
@@ -129,8 +131,8 @@ export default function ProductDetail() {
             <div className="h-full bg-[#3182F6] opacity-20" style={{ width: `${position}%` }} />
           </div>
           <div className="flex justify-between text-[12px] text-[#8B95A1] mt-2">
-            <span>{formatPrice(sku.priceHistory.min)}</span>
-            <span>{formatPrice(sku.priceHistory.max)}</span>
+            <span>{formatPrice(minPrice)}</span>
+            <span>{formatPrice(maxPrice)}</span>
           </div>
         </div>
 

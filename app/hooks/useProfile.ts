@@ -77,6 +77,7 @@ export function useProfile(): UseProfileReturn {
         isNeutered: (row.is_neutered as boolean) ?? defaultPet.isNeutered,
         activityLevel: (row.activity_level as PetProfile["activityLevel"]) ?? defaultPet.activityLevel,
         allergies: (row.allergies as string[]) ?? defaultPet.allergies,
+        birthDate: defaultPet.birthDate,
       };
 
       setState({ profile, isLoading: false, error: null });

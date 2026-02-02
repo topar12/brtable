@@ -3,7 +3,9 @@ import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/onboarding";
 import { defaultPet } from "../data/mock";
 import DataSourceBadge from "../components/DataSourceBadge";
+import { useAuth } from "../hooks/useAuth";
 import { useCatalogData } from "../hooks/useCatalogData";
+import { createPetProfile } from "../utils/petProfiles";
 import { loadStoredProfile, saveStoredProfile } from "../utils/profile";
 
 export function meta({ }: Route.MetaArgs) {
@@ -16,6 +18,7 @@ export function meta({ }: Route.MetaArgs) {
 const steps = [
   { id: "species", title: "어떤 아이와\n함께하고 계신가요?", subtitle: "맞춤형 급여량을 계산해 드릴게요." },
   { id: "name", title: "아이의 이름은\n무엇인가요?", subtitle: "다정하게 불러드릴게요." },
+  { id: "birth", title: "생년월일을\n알려주세요.", subtitle: "모르면 건너뛰어도 돼요." },
   { id: "breed", title: "품종을\n알려주세요.", subtitle: "품종별 평균 데이터와 비교해 드려요." },
   { id: "age_gender", title: "성별과 중성화 여부를\n확인해주세요.", subtitle: "호르몬 변화에 따라 필요 열량이 달라져요." }, // Combined for simplicity or split? stick to split if easy, but maybe cleaner combined. Let's stick to simple steps.
   { id: "weight", title: "몸무게는\n얼마인가요?", subtitle: "정확한 급여량 계산의 기준이 돼요." },
@@ -26,6 +29,7 @@ const steps = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const { breeds, source, loading, error } = useCatalogData();
+  const { user, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState(defaultPet);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -61,16 +65,40 @@ export default function Onboarding() {
     });
   }
 
-  function handleSave() {
+  async function handleSave() {
+    const matchedBreed = availableBreeds.find((breed) => breed.id === profile.breedId);
+    if (isAuthenticated && user?.id) {
+      try {
+        await createPetProfile({
+          user_id: user.id,
+          name: profile.name.trim() || "이름 없음",
+          species: profile.species,
+          breed_id: profile.breedId || null,
+          breed_name: matchedBreed?.name ?? null,
+          weight_kg: profile.weightKg,
+          is_neutered: profile.isNeutered,
+          activity_level: profile.activityLevel,
+          allergies: profile.allergies,
+          birth_date: profile.birthDate ? new Date(profile.birthDate).toISOString() : null,
+          image_url: null,
+          is_active: true,
+        });
+      } catch (saveError) {
+        const message = saveError instanceof Error ? saveError.message : "저장에 실패했습니다.";
+        alert(message);
+        return;
+      }
+    }
+
     saveStoredProfile(profile);
-    navigate("/pets");
+    navigate("/pets", { replace: true });
   }
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      handleSave();
+      await handleSave();
     }
   };
 
@@ -157,7 +185,31 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 3: Breed */}
+          {/* Step 3: Birth Date */}
+          {stepData.id === "birth" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[14px] font-medium text-[#8B95A1] mb-2">
+                  생년월일
+                </label>
+                <input
+                  type="date"
+                  value={profile.birthDate ?? ""}
+                  onChange={(e) => setProfile((p) => ({ ...p, birthDate: e.target.value || null }))}
+                  className="w-full px-4 py-3 bg-[#F2F4F6] rounded-[14px] text-[16px] text-[#191F28] focus:outline-none focus:ring-2 focus:ring-[#3182F6]/30"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setProfile((p) => ({ ...p, birthDate: null }))}
+                className="w-full py-3 rounded-[14px] text-[15px] font-bold bg-[#F2F4F6] text-[#8B95A1] hover:bg-[#E5E8EB] transition-colors"
+              >
+                모름
+              </button>
+            </div>
+          )}
+
+          {/* Step 4: Breed */}
           {stepData.id === "breed" && (
             <div>
               <select

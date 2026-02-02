@@ -104,6 +104,25 @@ model pet_profiles {
   updated_at    DateTime  @default(now()) @db.Timestamp(6)
 
   @@index([user_id])
+  
+  posts         Post[]
+}
+
+model walk_sessions {
+  id          String   @id @default(cuid())
+  user_id     String   @db.Uuid
+  pet_id      String
+  pet_name    String
+  pet_species String
+  started_at  DateTime @db.Timestamp(6)
+  ended_at    DateTime @db.Timestamp(6)
+  duration_ms Int
+  distance_km Float?
+  notes       String?
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([user_id])
+  @@index([pet_id])
 }
 
 model user_profiles {
@@ -119,5 +138,72 @@ model user_profiles {
   updated_at      DateTime  @default(now()) @db.Timestamp(6)
 
   @@index([user_id])
+
+  posts         Post[]
+  comments      Comment[]
+  likes         PostLike[]
 }
 
+
+// --- Community Feature ---
+
+enum PostCategory {
+  CHAT      // 수다
+  QUESTION  // 질문
+  TIP       // 정보/팁
+  REVIEW    // 후기
+}
+
+model Post {
+  id          String       @id @default(cuid())
+  categoryId  PostCategory @default(CHAT)
+  title       String
+  content     String
+  images      String[]     // JSON array of image URLs
+  viewCount   Int          @default(0)
+  
+  authorId    String       @db.Uuid
+  author      user_profiles @relation(fields: [authorId], references: [user_id])
+  
+  petId       String?
+  pet         pet_profiles? @relation(fields: [petId], references: [id])
+  
+  comments    Comment[]
+  likes       PostLike[]
+  
+  createdAt   DateTime     @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@index([authorId])
+  @@index([categoryId])
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  content   String
+  
+  postId    String
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  authorId  String        @db.Uuid
+  author    user_profiles @relation(fields: [authorId], references: [user_id])
+  
+  createdAt DateTime      @default(now()) @db.Timestamp(6)
+  updatedAt DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+model PostLike {
+  postId    String
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  userId    String        @db.Uuid
+  user      user_profiles @relation(fields: [userId], references: [user_id], onDelete: Cascade)
+  
+  createdAt DateTime      @default(now()) @db.Timestamp(6)
+
+  @@id([postId, userId])
+  @@index([userId])
+}

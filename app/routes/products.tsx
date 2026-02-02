@@ -89,6 +89,12 @@ export default function Products() {
             const position = pricePosition(sku.currentPrice, sku.priceHistory);
             const compareTarget = products.find((item) => item.id !== product.id) ?? product;
             const imageUrl = resolveProductImage(product.image, sku.image);
+            const minPrice = sku.priceHistory.length
+              ? Math.min(...sku.priceHistory)
+              : sku.currentPrice;
+            const maxPrice = sku.priceHistory.length
+              ? Math.max(...sku.priceHistory)
+              : sku.currentPrice;
 
             return (
               <article key={product.id} className="bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] active:scale-[0.98] transition-transform duration-200">
@@ -123,7 +129,7 @@ export default function Products() {
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="text-[12px] text-[#8B95A1]">가격 위치</span>
                       <span className="text-[12px] text-[#4E5968] font-medium">
-                        {formatPrice(sku.priceHistory.min)} ~ {formatPrice(sku.priceHistory.max)}
+                        {formatPrice(minPrice)} ~ {formatPrice(maxPrice)}
                       </span>
                     </div>
                     <div className="h-2 bg-[#F2F4F6] rounded-full overflow-hidden relative">

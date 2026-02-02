@@ -1,79 +1,73 @@
-export type WalkSessionV1 = {
+import { getSupabaseClient } from "./supabase";
+
+type SupabaseResult = { data: unknown; error: { message: string } | null };
+type SupabaseQuery = {
+  select: (columns: string) => SupabaseQuery;
+  insert: (values: unknown) => SupabaseQuery;
+  delete: () => SupabaseQuery;
+  eq: (column: string, value: unknown) => SupabaseQuery;
+  order: (column: string, options: { ascending: boolean }) => SupabaseQuery;
+  single: () => Promise<SupabaseResult>;
+};
+type SupabaseClientLoose = { from: (table: string) => SupabaseQuery };
+
+export type WalkSession = {
   id: string;
-  createdAtIso: string;
-  startedAtIso: string;
-  endedAtIso: string;
-  durationMs: number;
-  distanceKm: number | null;
-  notes: string;
-  profileSnapshot: {
-    name: string;
-    species: "DOG" | "CAT";
-    weightKg: number;
-  };
+  user_id: string;
+  pet_id: string;
+  pet_name: string;
+  pet_species: "DOG" | "CAT";
+  started_at: string;
+  ended_at: string;
+  duration_ms: number;
+  distance_km: number | null;
+  notes: string | null;
+  created_at: string;
 };
 
-type WalkSessionsStorageV1 = {
-  version: 1;
-  sessions: WalkSessionV1[];
-};
+type CreateWalkSessionInput = Omit<WalkSession, "id" | "created_at">;
 
-const STORAGE_KEY = "walkSessions:v1";
+export async function fetchWalkSessions(userId: string): Promise<WalkSession[]> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error("Supabase not configured");
+  const db = client as unknown as SupabaseClientLoose;
 
-function parseStoredSessions(raw: string | null): WalkSessionV1[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as WalkSessionsStorageV1;
-    if (!parsed || typeof parsed !== "object") return [];
-    if (parsed.version !== 1) return [];
-    if (!Array.isArray(parsed.sessions)) return [];
-    return parsed.sessions;
-  } catch (error) {
-    return [];
-  }
+  const query = db
+    .from("walk_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .order("started_at", { ascending: false });
+  const { data, error } = (await query) as unknown as SupabaseResult;
+
+  if (error) throw error;
+  return (data as WalkSession[]) || [];
 }
 
-export function loadWalkSessions(): WalkSessionV1[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const sessions = parseStoredSessions(raw);
-    return sessions.sort((a, b) =>
-      b.startedAtIso.localeCompare(a.startedAtIso)
-    );
-  } catch (error) {
-    return [];
-  }
+export async function createWalkSession(
+  session: CreateWalkSessionInput
+): Promise<WalkSession> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error("Supabase not configured");
+  const db = client as unknown as SupabaseClientLoose;
+
+  const query = db
+    .from("walk_sessions")
+    .insert(session)
+    .select("*")
+    .single();
+  const { data, error } = await query;
+
+  if (error) throw error;
+  return data as WalkSession;
 }
 
-export function saveWalkSessions(sessions: WalkSessionV1[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    const storage: WalkSessionsStorageV1 = {
-      version: 1,
-      sessions,
-    };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
-  } catch {}
+export async function deleteWalkSession(id: string): Promise<void> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error("Supabase not configured");
+  const db = client as unknown as SupabaseClientLoose;
 
-}
+  const query = db.from("walk_sessions").delete().eq("id", id);
+  const { error } = (await query) as unknown as SupabaseResult;
 
-export function addWalkSession(
-  session: Omit<WalkSessionV1, "id" | "createdAtIso">
-): WalkSessionV1 {
-  const newSession: WalkSessionV1 = {
-    ...session,
-    id: Date.now().toString(),
-    createdAtIso: new Date().toISOString(),
-  };
-  const sessions = loadWalkSessions();
-  sessions.unshift(newSession);
-  saveWalkSessions(sessions);
-  return newSession;
-}
-
-export function deleteWalkSession(id: string): void {
-  const sessions = loadWalkSessions();
-  const filtered = sessions.filter((s) => s.id !== id);
-  saveWalkSessions(filtered);
+  if (error) throw error;
 }

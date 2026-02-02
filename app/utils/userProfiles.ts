@@ -96,3 +96,32 @@ export async function checkProfileExists(
     return false;
   }
 }
+
+export async function checkNicknameAvailable(
+  nickname: string,
+  userId?: string
+): Promise<{ available: boolean; error: string | null }> {
+  const client = ensureSupabaseClient();
+  if (!client) {
+    return { available: false, error: "Supabase 클라이언트를 초기화할 수 없습니다." };
+  }
+
+  try {
+    let query = client
+      .from("user_profiles")
+      .select("user_id")
+      .eq("nickname", nickname)
+      .limit(1);
+
+    if (userId) {
+      query = query.neq("user_id", userId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    const isTaken = (data ?? []).length > 0;
+    return { available: !isTaken, error: null };
+  } catch (error) {
+    return { available: false, error: formatError(error) };
+  }
+}

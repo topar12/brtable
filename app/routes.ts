@@ -10,10 +10,17 @@ export default [
   route("products/:id", "routes/products.$id.tsx"),
   route("compare", "routes/compare.tsx"),
   route("pets", "routes/pets.tsx"),
+  route("profile", "routes/profile.tsx"),
   route("menu", "routes/menu.tsx"),
   route("welcome", "routes/welcome.tsx"),
   route("tools/walk-timer", "routes/tools.walk-timer.tsx"),
   route("tools/pet-age", "routes/tools.pet-age.tsx"),
+
+  // Community Routes
+  route("community", "routes/community.tsx"),
+  route("community/write", "routes/community.write.tsx"),
+  route("community/post/:postId", "routes/community.post.$postId.tsx"),
+
   route("admin", "routes/admin.tsx", [
     index("routes/admin._index.tsx"),
     route("products", "routes/admin.products.tsx"),

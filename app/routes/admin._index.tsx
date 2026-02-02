@@ -1,5 +1,6 @@
 import type { Route } from "./+types/admin._index";
 import { useEffect, useState } from "react";
+import { getSupabaseClient } from "../utils/supabase";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -52,6 +53,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function fetchStats() {
+      const client = getSupabaseClient();
       if (!client) {
         setStats(prev => ({ ...prev, loading: false, error: "Supabase not configured" }));
         return;

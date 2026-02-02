@@ -28,6 +28,7 @@ export function toPetProfile(db: DbPetProfile): PetProfile {
     isNeutered: db.is_neutered,
     activityLevel: db.activity_level,
     allergies: db.allergies || [],
+    birthDate: db.birth_date,
   };
 }
 

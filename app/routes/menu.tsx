@@ -43,7 +43,7 @@ const menuSections: MenuSection[] = [
     color: "orange",
     items: [
       { icon: "🐕", label: "반려동물 프로필", to: "/pets" },
-      { icon: "✏️", label: "프로필 수정", to: "/onboarding" },
+      { icon: "✏️", label: "반려동물 추가", to: "/onboarding" },
     ],
   },
   {
