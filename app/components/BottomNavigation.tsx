@@ -8,7 +8,7 @@ export default function BottomNavigation() {
                     <NavItem to="/" label="홈" icon={<HomeIcon />} />
                     <NavItem to="/products" label="사료" icon={<SearchIcon />} />
                     <NavItem to="/calculator" label="분석" icon={<ChartIcon />} />
-                    <NavItem to="/onboarding" label="전체" icon={<MenuIcon />} />
+                    <NavItem to="/menu" label="전체" icon={<MenuIcon />} />
                 </div>
             </div>
         </nav>

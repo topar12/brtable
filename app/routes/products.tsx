@@ -42,6 +42,10 @@ export default function Products() {
     <div className="bg-[#F2F4F6] min-h-screen pb-24">
       {/* Sticky Header & Search */}
       <div className="bg-white sticky top-0 z-10 px-5 pt-12 pb-4 shadow-sm">
+        <Link to="/" className="inline-flex items-center text-[#8B95A1] hover:text-[#191F28] transition-colors mb-4">
+          <span className="mr-1">←</span>
+          <span className="text-sm">돌아가기</span>
+        </Link>
         <h1 className="text-[24px] font-bold text-[#191F28] mb-4">사료 리스트</h1>
 
         <div className="relative">

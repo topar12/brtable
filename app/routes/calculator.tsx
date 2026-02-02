@@ -137,6 +137,10 @@ export default function Calculator() {
   return (
     <div className="bg-[#F2F4F6] min-h-screen pb-24">
       <div className="px-5 pt-12 pb-6">
+        <Link to="/" className="inline-flex items-center text-[#8B95A1] hover:text-[#191F28] transition-colors mb-4">
+          <span className="mr-1">←</span>
+          <span className="text-sm">돌아가기</span>
+        </Link>
         <h1 className="text-[26px] font-bold text-[#191F28] leading-tight">
           급여량 계산기 <span className="text-[26px]">🧮</span>
         </h1>

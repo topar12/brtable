@@ -63,7 +63,7 @@ export default function Onboarding() {
 
   function handleSave() {
     saveStoredProfile(profile);
-    navigate("/");
+    navigate("/pets");
   }
 
   const nextStep = () => {

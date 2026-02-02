@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "brtable" generated at 2026-01-31T13:46:29.457Z.

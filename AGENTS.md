@@ -23,6 +23,8 @@ npx prisma studio        # Open Prisma Studio
 
 # Production
 npm run start            # Start production server
+npm run preview          # Build and preview with Wrangler
+npm run deploy           # Deploy to Cloudflare Workers
 ```
 
 ## Tech Stack
@@ -34,6 +36,7 @@ npm run start            # Start production server
 - **Database**: PostgreSQL + Prisma ORM
 - **Auth**: Supabase Auth (Google, Kakao OAuth)
 - **Build**: Vite with tsconfig-paths
+- **Deployment**: Cloudflare Workers
 
 ## Code Style
 

@@ -15,6 +15,8 @@ const menuItems = [
   { path: "/admin/skus", label: "SKU 관리", icon: "📦" },
   { path: "/admin/breeds", label: "품종 관리", icon: "🐕" },
   { path: "/admin/imports", label: "데이터 입출력", icon: "📥" },
+  { path: "/admin/users", label: "사용자 관리", icon: "👥" },
+  { path: "/admin/pets", label: "반려동물 관리", icon: "🐾" },
 ];
 
 function Sidebar() {
