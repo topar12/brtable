@@ -221,8 +221,8 @@ export function useCatalogData() {
         if (breedResult.error || productResult.error || skuResult.error) {
           throw new Error(
             breedResult.error?.message ||
-              productResult.error?.message ||
-              skuResult.error?.message,
+            productResult.error?.message ||
+            skuResult.error?.message,
           );
         }
 
@@ -235,11 +235,11 @@ export function useCatalogData() {
         const skuRows = Array.isArray(skuResult.data)
           ? (skuResult.data as unknown[])
           : [];
-        
+
         const normalizedSkus = skuRows
           .map((row) => normalizeSkuRow(row))
           .filter((row): row is NormalizedSku => row !== null);
-        
+
         const skuMap: Map<string, ProductSku[]> = new Map();
         const rollupMap: Map<string, { currentPrice: number; yearMin: number; yearMax: number }> = new Map();
 
@@ -249,7 +249,7 @@ export function useCatalogData() {
             .from("sku_price_rollups")
             .select("sku_id,current_price,year_min,year_max")
             .in("sku_id", skuIds);
-          
+
           if (!rollupResult.error && Array.isArray(rollupResult.data)) {
             rollupResult.data
               .map((row) => normalizePriceRollupRow(row))
@@ -266,7 +266,7 @@ export function useCatalogData() {
           const currentPrice = rollup?.currentPrice ?? sku.basePrice;
           const yearMin = rollup?.yearMin ?? currentPrice;
           const yearMax = rollup?.yearMax ?? currentPrice;
-          
+
           const existing = skuMap.get(sku.productId) ?? [];
           existing.push({
             id: sku.id,
@@ -276,10 +276,14 @@ export function useCatalogData() {
           });
           skuMap.set(sku.productId, existing);
         });
-        
-        const nextBreeds = breedRows
-          .map((item) => normalizeBreedRow(item))
-          .filter((item): item is Breed => item !== null);
+
+        const nextBreeds = [
+          ...breedRows
+            .map((item) => normalizeBreedRow(item))
+            .filter((item): item is Breed => item !== null),
+          // Fallback for CAT breeds since table is missing
+          ...mockBreeds.filter(b => b.species === "CAT")
+        ];
         const nextProducts = productRows
           .map((item) => normalizeProductRow(item, skuMap))
           .filter((item): item is Product => item !== null);

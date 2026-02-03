@@ -10,6 +10,7 @@ export default [
   route("products/:id", "routes/products.$id.tsx"),
   route("compare", "routes/compare.tsx"),
   route("pets", "routes/pets.tsx"),
+  route("pets/edit/:id", "routes/pets.edit.$id.tsx"),
   route("profile", "routes/profile.tsx"),
   route("menu", "routes/menu.tsx"),
   route("welcome", "routes/welcome.tsx"),

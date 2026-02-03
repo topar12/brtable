@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import type { Route } from "./+types/community.write";
+import { createRow } from "../utils/adminData";
+import { fetchPetProfiles, type DbPetProfile } from "../utils/petProfiles";
+import { getSupabaseClient } from "../utils/supabase";
 
 export function meta({ }: Route.MetaArgs) {
     return [
@@ -14,12 +17,57 @@ export default function CommunityWrite() {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
 
-    // Mock data for user's pets
-    const myPets = [
-        { id: "p1", name: "구름이", breed: "말티즈", image_url: "" },
-        { id: "p2", name: "초코", breed: "푸들", image_url: "" },
-    ];
-    const [selectedPetId, setSelectedPetId] = useState<string | null>(myPets[0].id);
+    const [pets, setPets] = useState<DbPetProfile[]>([]);
+    const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
+
+    useEffect(() => {
+        let alive = true;
+        const client = getSupabaseClient();
+
+        async function loadPets() {
+            if (!client) {
+                if (alive) {
+                    setError("Supabase 설정이 없어 글을 작성할 수 없어요.");
+                    setLoading(false);
+                }
+                return;
+            }
+
+            const { data, error: authError } = await client.auth.getUser();
+            if (authError || !data.user) {
+                if (alive) {
+                    setError("로그인이 필요합니다.");
+                    setLoading(false);
+                }
+                return;
+            }
+
+            if (!alive) return;
+            setUserId(data.user.id);
+
+            try {
+                const profiles = await fetchPetProfiles(data.user.id);
+                if (!alive) return;
+                setPets(profiles);
+                setSelectedPetId(profiles[0]?.id ?? null);
+                setLoading(false);
+            } catch (fetchError) {
+                if (!alive) return;
+                setError(fetchError instanceof Error ? fetchError.message : "펫 정보를 불러오지 못했어요.");
+                setLoading(false);
+            }
+        }
+
+        loadPets();
+
+        return () => {
+            alive = false;
+        };
+    }, []);
 
     const categories = [
         { id: "CHAT", label: "수다" },
@@ -28,11 +76,35 @@ export default function CommunityWrite() {
         { id: "REVIEW", label: "후기" },
     ];
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        // In real app: call action to save to DB
-        alert("게시글이 등록되었습니다 (Mock)");
-        navigate("/community");
+        if (!title || !content) return;
+
+        const client = getSupabaseClient();
+        if (!client || !userId) {
+            alert("로그인이 필요합니다.");
+            navigate("/login");
+            return;
+        }
+
+        setSubmitting(true);
+        setError(null);
+
+        const result = await createRow<{ id: string }>("posts", {
+            title,
+            content,
+            category_id: category,
+            author_id: userId,
+            pet_id: selectedPetId,
+        });
+
+        if (!result.ok) {
+            setError(result.error ?? "게시글 등록에 실패했어요.");
+            setSubmitting(false);
+            return;
+        }
+
+        navigate(`/community/post/${result.data.id}`);
     };
 
     return (
@@ -48,33 +120,44 @@ export default function CommunityWrite() {
                         type="submit"
                         form="write-form"
                         className="text-[#3182F6] font-bold text-[17px] px-3 py-1 hover:bg-blue-50 rounded-lg disabled:text-gray-300 transition-colors"
-                        disabled={!title || !content}
+                        disabled={!title || !content || submitting || loading}
                     >
                         완료
                     </button>
                 </header>
 
                 <form id="write-form" onSubmit={handleSubmit} className="px-5 py-6 flex flex-col gap-6 flex-1">
+                    {error && (
+                        <div className="rounded-xl bg-red-50 text-red-600 text-sm px-4 py-3">
+                            ⚠️ {error}
+                        </div>
+                    )}
 
                     {/* Pet Context Selector */}
                     <section>
                         <label className="block text-sm font-bold text-gray-500 mb-3">어떤 아이의 이야기인가요?</label>
-                        <div className="flex gap-3 overflow-x-auto pb-2">
-                            {myPets.map(pet => (
-                                <button
-                                    key={pet.id}
-                                    type="button"
-                                    onClick={() => setSelectedPetId(pet.id)}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${selectedPetId === pet.id
-                                        ? "border-[#3182F6] bg-blue-50 text-[#3182F6]"
-                                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                                        }`}
-                                >
-                                    <div className="w-8 h-8 rounded-full bg-gray-200"></div> {/* Avatar Placeholder */}
-                                    <span className="text-base font-semibold">{pet.name}</span>
-                                </button>
-                            ))}
-                        </div>
+                        {loading ? (
+                            <div className="text-sm text-gray-400">펫 정보를 불러오는 중...</div>
+                        ) : pets.length > 0 ? (
+                            <div className="flex gap-3 overflow-x-auto pb-2">
+                                {pets.map((pet) => (
+                                    <button
+                                        key={pet.id}
+                                        type="button"
+                                        onClick={() => setSelectedPetId(pet.id)}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${selectedPetId === pet.id
+                                            ? "border-[#3182F6] bg-blue-50 text-[#3182F6]"
+                                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                                            }`}
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                                        <span className="text-base font-semibold">{pet.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-gray-400">등록된 반려동물이 없습니다.</div>
+                        )}
                     </section>
 
                     {/* Category Selector */}

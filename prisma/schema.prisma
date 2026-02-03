@@ -87,7 +87,7 @@ model cat_breeds {
 }
 
 model pet_profiles {
-  id            String    @id @default(cuid())
+  id            String    @id @default(uuid()) @db.Uuid
   user_id       String    @db.Uuid
   name          String
   species       String    // "DOG" | "CAT"
@@ -155,55 +155,58 @@ enum PostCategory {
 }
 
 model Post {
-  id          String       @id @default(cuid())
-  categoryId  PostCategory @default(CHAT)
+  id          String       @id @default(dbgenerated("gen_random_uuid()"))
+  categoryId  PostCategory @default(CHAT) @map("category_id")
   title       String
   content     String
   images      String[]     // JSON array of image URLs
-  viewCount   Int          @default(0)
+  viewCount   Int          @default(0) @map("view_count")
   
-  authorId    String       @db.Uuid
+  authorId    String       @db.Uuid @map("author_id")
   author      user_profiles @relation(fields: [authorId], references: [user_id])
   
-  petId       String?
+  petId       String?      @db.Uuid @map("pet_id")
   pet         pet_profiles? @relation(fields: [petId], references: [id])
   
   comments    Comment[]
   likes       PostLike[]
   
-  createdAt   DateTime     @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamp(6)
+  createdAt   DateTime     @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamp(6) @map("updated_at")
 
   @@index([authorId])
   @@index([categoryId])
+  @@map("posts")
 }
 
 model Comment {
-  id        String        @id @default(cuid())
+  id        String        @id @default(dbgenerated("gen_random_uuid()"))
   content   String
   
-  postId    String
+  postId    String        @map("post_id")
   post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   
-  authorId  String        @db.Uuid
+  authorId  String        @db.Uuid @map("author_id")
   author    user_profiles @relation(fields: [authorId], references: [user_id])
   
-  createdAt DateTime      @default(now()) @db.Timestamp(6)
-  updatedAt DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+  createdAt DateTime      @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt DateTime      @default(now()) @updatedAt @db.Timestamp(6) @map("updated_at")
 
   @@index([postId])
   @@index([authorId])
+  @@map("comments")
 }
 
 model PostLike {
-  postId    String
+  postId    String        @map("post_id")
   post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   
-  userId    String        @db.Uuid
+  userId    String        @db.Uuid @map("user_id")
   user      user_profiles @relation(fields: [userId], references: [user_id], onDelete: Cascade)
   
-  createdAt DateTime      @default(now()) @db.Timestamp(6)
+  createdAt DateTime      @default(now()) @db.Timestamp(6) @map("created_at")
 
   @@id([postId, userId])
   @@index([userId])
+  @@map("post_likes")
 }

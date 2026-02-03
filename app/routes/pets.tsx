@@ -10,7 +10,7 @@ import {
 } from "../utils/petProfiles";
 import { saveStoredProfile } from "../utils/profile";
 
-export function meta({}: Route.MetaArgs) {
+export function meta({ }: Route.MetaArgs) {
   return [
     { title: "반려식탁 | 내 반려동물" },
     { name: "description", content: "반려동물 프로필 관리" },
@@ -183,6 +183,12 @@ export default function PetsPage() {
                     </div>
                   </div>
                   <div className="flex gap-1">
+                    <Link
+                      to={`/pets/edit/${profile.id}`}
+                      className="p-2 text-[#8B95A1] hover:text-[#3182F6] hover:bg-blue-50 rounded-xl transition-colors"
+                    >
+                      ✏️
+                    </Link>
                     <button
                       onClick={() => handleDelete(profile.id)}
                       className="p-2 text-[#8B95A1] hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"

@@ -41,39 +41,47 @@ export default function Products() {
   return (
     <div className="bg-[#F2F4F6] min-h-screen pb-24">
       {/* Sticky Header & Search */}
-      <div className="bg-white sticky top-0 z-10 px-5 pt-12 pb-4 shadow-sm">
-        <Link to="/" className="inline-flex items-center text-[#8B95A1] hover:text-[#191F28] transition-colors mb-4">
-          <span className="mr-1">←</span>
-          <span className="text-sm">돌아가기</span>
-        </Link>
-        <h1 className="text-[24px] font-bold text-[#191F28] mb-4">사료 리스트</h1>
+      <div className="bg-[#F2F4F6]/80 backdrop-blur-md sticky top-0 z-10 px-5 pt-5 pb-4 transition-all border-b border-black/5">
+        <div className="max-w-md mx-auto">
+          <header className="flex items-center mb-6">
+            <Link
+              to="/"
+              className="inline-flex items-center text-[#8B95A1] hover:text-[#191F28] transition-colors"
+            >
+              <span className="mr-1 text-lg">←</span>
+              <span className="text-[15px] font-medium">돌아가기</span>
+            </Link>
+            <h1 className="text-[17px] font-bold text-[#191F28] ml-auto">사료 리스트</h1>
+          </header>
 
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="브랜드 또는 제품명 검색"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#F2F4F6] text-[#191F28] placeholder-[#8B95A1] px-11 py-3.5 rounded-2xl text-[15px] font-medium focus:outline-none focus:ring-2 focus:ring-[#3182F6] transition-all"
-          />
-          <svg className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#8B95A1]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-
-        {/* Horizontal Filters (Optional: Add more filters here later) */}
-        {excluded.length > 0 && (
-          <div className="flex gap-2.5 overflow-x-auto mt-4 pb-1 scrollbar-hide">
-            <span className="flex-shrink-0 bg-[#3182F6]/10 text-[#3182F6] px-3 py-1.5 rounded-full text-[13px] font-bold">
-              {excluded.length}개 성분 제외됨
-            </span>
-            {excluded.map((item) => (
-              <span key={item} className="flex-shrink-0 bg-white border border-[#E5E8EB] text-[#4E5968] px-3 py-1.5 rounded-full text-[13px] font-medium">
-                🚫 {item}
-              </span>
-            ))}
+          <div className="relative mb-2">
+            <input
+              type="text"
+              placeholder="브랜드 또는 제품명 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white text-[#191F28] placeholder-[#8B95A1] px-11 py-3.5 rounded-[20px] text-[15px] font-medium focus:outline-none focus:ring-4 focus:ring-[#3182F6]/10 focus:border-[#3182F6] border border-transparent transition-all shadow-sm"
+            />
+            <svg className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#8B95A1]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-        )}
+
+          {/* Horizontal Filters */}
+          {excluded.length > 0 && (
+            <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+              <span className="flex-shrink-0 bg-[#3182F6]/10 text-[#3182F6] px-3 py-1.5 rounded-full text-[13px] font-bold flex items-center gap-1">
+                <span>🛡️</span>
+                {excluded.length}개 제외중
+              </span>
+              {excluded.map((item) => (
+                <span key={item} className="flex-shrink-0 bg-white border border-[#E5E8EB] text-[#4E5968] px-3 py-1.5 rounded-full text-[13px] font-medium">
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="px-5 mt-4 space-y-4">

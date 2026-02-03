@@ -111,6 +111,36 @@ export default function Onboarding() {
   const stepData = steps[currentStep];
   const progress = ((currentStep + 1) / steps.length) * 100;
 
+  // Access Control
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto">
+        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-4xl mb-6">
+          🔒
+        </div>
+        <h1 className="text-2xl font-bold text-[#191F28] mb-3">로그인이 필요해요</h1>
+        <p className="text-[#8B95A1] mb-8 leading-relaxed">
+          반려동물 프로필을 만들고<br />
+          맞춤형 관리를 시작해보세요.
+        </p>
+        <div className="w-full space-y-3">
+          <Link
+            to="/login"
+            className="block w-full py-4 bg-[#3182F6] text-white font-bold rounded-[20px] active:scale-[0.98] transition-transform"
+          >
+            로그인하기
+          </Link>
+          <Link
+            to="/"
+            className="block w-full py-4 bg-[#F2F4F6] text-[#4E5968] font-bold rounded-[20px] hover:bg-[#E5E8EB] transition-colors"
+          >
+            홈으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col max-w-md mx-auto relative overflow-hidden">
       {/* Progress Bar */}
@@ -151,8 +181,8 @@ export default function Onboarding() {
               <button
                 onClick={() => setProfile(p => ({ ...p, species: "DOG" }))}
                 className={`w-full p-6 rounded-[24px] border-2 text-left transition-all ${profile.species === "DOG"
-                    ? "border-[#3182F6] bg-[#E8F3FF]"
-                    : "border-[#F2F4F6] bg-white hover:bg-[#F9FAFB]"
+                  ? "border-[#3182F6] bg-[#E8F3FF]"
+                  : "border-[#F2F4F6] bg-white hover:bg-[#F9FAFB]"
                   }`}
               >
                 <span className="text-[32px] block mb-2">🐕</span>
@@ -161,8 +191,8 @@ export default function Onboarding() {
               <button
                 onClick={() => setProfile(p => ({ ...p, species: "CAT" }))}
                 className={`w-full p-6 rounded-[24px] border-2 text-left transition-all ${profile.species === "CAT"
-                    ? "border-[#3182F6] bg-[#E8F3FF]"
-                    : "border-[#F2F4F6] bg-white hover:bg-[#F9FAFB]"
+                  ? "border-[#3182F6] bg-[#E8F3FF]"
+                  : "border-[#F2F4F6] bg-white hover:bg-[#F9FAFB]"
                   }`}
               >
                 <span className="text-[32px] block mb-2">🐈</span>
@@ -237,8 +267,8 @@ export default function Onboarding() {
                 <button
                   onClick={() => setProfile(p => ({ ...p, isNeutered: true }))}
                   className={`p-5 rounded-[20px] text-center font-bold transition-all ${profile.isNeutered
-                      ? "bg-[#3182F6] text-white shadow-md"
-                      : "bg-[#F2F4F6] text-[#8B95A1]"
+                    ? "bg-[#3182F6] text-white shadow-md"
+                    : "bg-[#F2F4F6] text-[#8B95A1]"
                     }`}
                 >
                   했어요
@@ -246,8 +276,8 @@ export default function Onboarding() {
                 <button
                   onClick={() => setProfile(p => ({ ...p, isNeutered: false }))}
                   className={`p-5 rounded-[20px] text-center font-bold transition-all ${!profile.isNeutered
-                      ? "bg-[#3182F6] text-white shadow-md"
-                      : "bg-[#F2F4F6] text-[#8B95A1]"
+                    ? "bg-[#3182F6] text-white shadow-md"
+                    : "bg-[#F2F4F6] text-[#8B95A1]"
                     }`}
                 >
                   아직 안 했어요
@@ -308,8 +338,8 @@ export default function Onboarding() {
                   key={allergy}
                   onClick={() => toggleAllergy(allergy)}
                   className={`p-4 rounded-[16px] font-bold transition-all ${profile.allergies.includes(allergy)
-                      ? "bg-[#FFEBEB] text-[#FF5B5B] ring-2 ring-[#FF5B5B]"
-                      : "bg-[#F9FAFB] text-[#4E5968] hover:bg-[#F2F4F6]"
+                    ? "bg-[#FFEBEB] text-[#FF5B5B] ring-2 ring-[#FF5B5B]"
+                    : "bg-[#F9FAFB] text-[#4E5968] hover:bg-[#F2F4F6]"
                     }`}
                 >
                   {allergy}

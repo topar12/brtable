@@ -27,6 +27,7 @@ npm run typecheck          # react-router typegen && tsc
 # Tests
 npm run test               # vitest (runs all tests)
 npx vitest run <file>      # run a single test file
+npx vitest run <file> -t "name"  # run a single test by name
 npx vitest --reporter=verbose
 
 # Database
@@ -64,7 +65,8 @@ prisma/
 - TS strict mode is enabled (see `tsconfig.json`).
 - Use `~/*` path alias for app imports when reasonable.
 - Use `import type` for type-only imports.
-- Typical import order: React/Router, external libs, internal modules.
+- Keep import order: React/Router, external libs, internal modules, relative paths.
+- Keep side-effect imports (if any) last.
 - React Router route files import `Route` from `./+types/<route>`.
 
 ## Formatting & File Style
@@ -73,12 +75,15 @@ prisma/
 - Keep trailing commas in multiline objects/arrays/params.
 - Two-space indentation is used throughout the repo.
 - Prefer `const`; use `let` only when reassigned.
+- Keep files small and focused; avoid mixing data fetching with UI composition.
 
 ## Naming & Types
 - Components/types: PascalCase (`ProductCard`, `UserProfile`).
 - Functions/variables: camelCase (`calculateDer`, `pricePosition`).
 - Boolean names: `is*`, `has*`, `should*`.
 - Exported utilities: use explicit return types when non-trivial.
+- Prefer precise types over `any`; use type guards for external data.
+- Keep union types small and named if reused.
 
 ## React Router Patterns
 - Use `loader`/`action` for data work in routes.
@@ -94,6 +99,7 @@ prisma/
 - Avoid empty catch blocks; surface meaningful errors.
 - Use `getSupabaseClient()` and `hasSupabaseConfig()` from `app/utils/supabase.ts`.
 - Normalize Supabase rows with explicit type guards before use.
+- Keep error objects consistent (`{ error: string }` or `Error`).
 
 ## Styling Conventions
 - TailwindCSS v4 is used across the app.
