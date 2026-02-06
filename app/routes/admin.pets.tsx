@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Route } from "./+types/admin.pets";
-import { fetchAll, updateRow, deleteRow } from "../utils/adminData";
+import type { UserProfile } from "../utils/userProfiles";
+import { deleteRow, fetchAll, fetchListByIn, fetchUsersAuthInfo, updateRow } from "../utils/adminData";
 import { Button, FormField } from "../components/admin";
 
 export function meta({}: Route.MetaArgs) {
@@ -24,8 +25,15 @@ type PetProfile = {
   created_at: string;
 };
 
+type OwnerInfo = {
+  userId: string;
+  nickname: string | null;
+  email: string | null;
+};
+
 export default function AdminPets() {
   const [pets, setPets] = useState<PetProfile[]>([]);
+  const [ownerMap, setOwnerMap] = useState<Record<string, OwnerInfo>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,8 +53,37 @@ export default function AdminPets() {
     });
     if (!result.ok) {
       setError(result.error);
+      setOwnerMap({});
     } else {
-      setPets(result.data || []);
+      const nextPets = result.data || [];
+      setPets(nextPets);
+
+      const userIds = [...new Set(nextPets.map((pet) => pet.user_id).filter(Boolean))];
+      if (userIds.length) {
+        const [profilesResult, authResult] = await Promise.all([
+          fetchListByIn<UserProfile>("user_profiles", "user_id", userIds),
+          fetchUsersAuthInfo(userIds),
+        ]);
+        const profileMap = new Map(
+          (profilesResult.ok ? profilesResult.data : []).map((profile) => [profile.user_id, profile]),
+        );
+        const authMap = new Map(
+          (authResult.ok ? authResult.data : []).map((info) => [info.user_id, info]),
+        );
+        const nextOwnerMap: Record<string, OwnerInfo> = {};
+        userIds.forEach((userId) => {
+          const profile = profileMap.get(userId);
+          const auth = authMap.get(userId);
+          nextOwnerMap[userId] = {
+            userId,
+            nickname: profile?.nickname ?? null,
+            email: auth?.email ?? null,
+          };
+        });
+        setOwnerMap(nextOwnerMap);
+      } else {
+        setOwnerMap({});
+      }
     }
     setLoading(false);
   }
@@ -154,6 +191,7 @@ export default function AdminPets() {
           <thead className="bg-[#F2F4F6]">
             <tr>
               <th className="px-4 py-3 text-left text-[14px] font-bold text-[#4E5968]">이름</th>
+              <th className="px-4 py-3 text-left text-[14px] font-bold text-[#4E5968]">주인</th>
               <th className="px-4 py-3 text-left text-[14px] font-bold text-[#4E5968]">종류</th>
               <th className="px-4 py-3 text-left text-[14px] font-bold text-[#4E5968]">품종</th>
               <th className="px-4 py-3 text-left text-[14px] font-bold text-[#4E5968]">체중</th>
@@ -162,43 +200,53 @@ export default function AdminPets() {
             </tr>
           </thead>
           <tbody>
-            {filteredPets.map((pet) => (
-              <tr key={pet.id} className="border-t border-[#E5E8EB] hover:bg-[#F8F9FA]">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-[#191F28]">{pet.name}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-1 rounded-full text-[12px] font-bold ${
-                      pet.species === "DOG"
-                        ? "bg-blue-50 text-blue-600"
-                        : "bg-orange-50 text-orange-600"
-                    }`}
-                  >
-                    {pet.species === "DOG" ? "🐕 강아지" : "🐈 고양이"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-[#4E5968]">{pet.breed_name || "-"}</td>
-                <td className="px-4 py-3 text-[#4E5968]">{pet.weight_kg}kg</td>
-                <td className="px-4 py-3 text-[#4E5968]">{formatDate(pet.created_at)}</td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex gap-2 justify-center">
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setSelectedPet(pet);
-                        setIsEditing(true);
-                      }}
+            {filteredPets.map((pet) => {
+              const owner = ownerMap[pet.user_id];
+              const ownerEmailOrId = owner?.email ?? pet.user_id.slice(0, 8);
+              return (
+                <tr key={pet.id} className="border-t border-[#E5E8EB] hover:bg-[#F8F9FA]">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-[#191F28]">{pet.name}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-[#191F28]">{owner?.nickname ?? "-"}</div>
+                    <div className="text-xs text-[#8B95A1]" title={pet.user_id}>
+                      {ownerEmailOrId}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-[12px] font-bold ${
+                        pet.species === "DOG"
+                          ? "bg-blue-50 text-blue-600"
+                          : "bg-orange-50 text-orange-600"
+                      }`}
                     >
-                      수정
-                    </Button>
-                    <Button variant="danger" onClick={() => handleDelete(pet.id)}>
-                      삭제
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      {pet.species === "DOG" ? "🐕 강아지" : "🐈 고양이"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-[#4E5968]">{pet.breed_name || "-"}</td>
+                  <td className="px-4 py-3 text-[#4E5968]">{pet.weight_kg}kg</td>
+                  <td className="px-4 py-3 text-[#4E5968]">{formatDate(pet.created_at)}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedPet(pet);
+                          setIsEditing(true);
+                        }}
+                      >
+                        수정
+                      </Button>
+                      <Button variant="danger" onClick={() => handleDelete(pet.id)}>
+                        삭제
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 

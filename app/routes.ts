@@ -16,6 +16,8 @@ export default [
   route("welcome", "routes/welcome.tsx"),
   route("tools/walk-timer", "routes/tools.walk-timer.tsx"),
   route("tools/pet-age", "routes/tools.pet-age.tsx"),
+  route("dashboard", "routes/dashboard.tsx"),
+  route("guide", "routes/guide.tsx"),
 
   // Community Routes
   route("community", "routes/community.tsx"),
@@ -27,8 +29,11 @@ export default [
     route("products", "routes/admin.products.tsx"),
     route("skus", "routes/admin.skus.tsx"),
     route("breeds", "routes/admin.breeds.tsx"),
+    route("community", "routes/admin.community.tsx"),
+    route("guides", "routes/admin.guides.tsx"),
     route("imports", "routes/admin.imports.tsx"),
     route("users", "routes/admin.users.tsx"),
+    route("users/:userId", "routes/admin.users.$userId.tsx"),
     route("pets", "routes/admin.pets.tsx"),
   ]),
 ] satisfies RouteConfig;

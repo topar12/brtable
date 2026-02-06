@@ -28,11 +28,11 @@
       "variant": "max"
     },
     "momus": {
-      "model": "kimi-for-coding/k2p5",
+      "model": "moonshotai/kimi-k2.5",
       "variant": "high"
     },
     "atlas": {
-      "model": "kimi-for-coding/k2p5"
+      "model": "moonshotai/kimi-k2.5"
     }
   },
   "categories": {

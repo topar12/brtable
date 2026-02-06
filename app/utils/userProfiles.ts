@@ -11,6 +11,8 @@ export type UserProfile = {
   referral_source: string | null;
   created_at: string;
   updated_at: string;
+  is_banned?: boolean;
+  deleted_at?: string | null;
 };
 
 export type CreateUserProfileInput = Omit<

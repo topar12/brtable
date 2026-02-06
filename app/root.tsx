@@ -6,6 +6,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLocation,
+  useMatch,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -46,12 +47,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith("/admin");
+  const adminMatch = useMatch("/admin/*");
+  const isAdminRoute = Boolean(adminMatch) || location.pathname === "/admin";
   const isAuthRoute = location.pathname === "/login";
 
   // Admin routes: full width, no bottom nav
   if (isAdminRoute) {
-    return <Outlet />;
+    return (
+      <div className="admin-root">
+        <Outlet />
+      </div>
+    );
   }
 
   // Auth routes (login): simple layout

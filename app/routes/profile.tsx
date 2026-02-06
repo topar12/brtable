@@ -202,6 +202,15 @@ export default function ProfilePage() {
             </div>
             <RoleBadge role={role} />
           </div>
+          {(role === "master" || role === "operator") && (
+            <Link
+              to="/admin"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[16px] bg-[#3182F6] py-3 text-[15px] font-bold text-white transition-all hover:bg-blue-600 active:scale-[0.98]"
+            >
+              <span className="text-base">🛠️</span>
+              어드민으로 이동
+            </Link>
+          )}
           <button
             onClick={signOut}
             className="mt-5 w-full py-3 bg-slate-100 text-[#8B95A1] rounded-[16px] text-[15px] font-bold hover:bg-slate-200 active:scale-[0.98] transition-all"

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "./supabase";
+import { getServerSupabaseClient } from "./supabase-ssr";
 
 type ResultOk<T> = { ok: true; data: T };
 type ResultErr = { ok: false; error: string };
@@ -38,14 +39,20 @@ type LooseQuery = {
 
 type LooseClient = {
   from: (table: string) => LooseQuery;
+  rpc?: (fn: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 };
 
 function ensureSupabase() {
-  const client = getSupabaseClient();
-  if (!client) {
-    return { ok: false, error: "Supabase 설정이 없습니다." } as const;
+  // Try browser client first (has auth session for RLS policies), then server client for SSR
+  const browserClient = getSupabaseClient();
+  if (browserClient) {
+    return { ok: true, client: browserClient as unknown as LooseClient } as const;
   }
-  return { ok: true, client: client as unknown as LooseClient } as const;
+  const serverClient = getServerSupabaseClient();
+  if (serverClient) {
+    return { ok: true, client: serverClient as unknown as LooseClient } as const;
+  }
+  return { ok: false, error: "Supabase 설정이 없습니다." } as const;
 }
 
 function tableRef(client: LooseClient, table: string) {
@@ -84,6 +91,68 @@ export async function fetchById<T>(table: string, id: string | number, idKey = "
     .single();
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: data as T };
+}
+
+export async function fetchListByField<T>(
+  table: string,
+  field: string,
+  value: string | number,
+  options: ListOptions = {},
+): Promise<Result<T[]>> {
+  const clientResult = ensureSupabase();
+  if (!clientResult.ok) return clientResult;
+  let query = tableRef(clientResult.client, table).select("*").eq(field, value);
+  if (options.orderBy) {
+    query = query.order(options.orderBy, { ascending: options.ascending ?? true });
+  }
+  if (typeof options.limit === "number") {
+    const offset = options.offset ?? 0;
+    const to = offset + options.limit - 1;
+    query = query.range(offset, Math.max(offset, to));
+  }
+  const { data, error } = await query;
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: (data ?? []) as T[] };
+}
+
+export async function fetchListByIn<T>(
+  table: string,
+  field: string,
+  values: Array<string | number>,
+  options: ListOptions = {},
+): Promise<Result<T[]>> {
+  if (!values.length) return { ok: true, data: [] as T[] };
+  const clientResult = ensureSupabase();
+  if (!clientResult.ok) return clientResult;
+  let query = tableRef(clientResult.client, table).select("*").in(field, values);
+  if (options.orderBy) {
+    query = query.order(options.orderBy, { ascending: options.ascending ?? true });
+  }
+  if (typeof options.limit === "number") {
+    const offset = options.offset ?? 0;
+    const to = offset + options.limit - 1;
+    query = query.range(offset, Math.max(offset, to));
+  }
+  const { data, error } = await query;
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: (data ?? []) as T[] };
+}
+
+export async function fetchUsersAuthInfo(
+  userIds: string[],
+): Promise<Result<Array<{ user_id: string; email: string | null; last_sign_in_at: string | null }>>> {
+  if (!userIds.length) return { ok: true, data: [] };
+  const clientResult = ensureSupabase();
+  if (!clientResult.ok) return clientResult;
+  if (!clientResult.client.rpc) {
+    return { ok: false, error: "Supabase RPC를 사용할 수 없습니다." };
+  }
+  const { data, error } = await clientResult.client.rpc("get_users_auth_info", { uids: userIds });
+  if (error) return { ok: false, error: error.message };
+  return {
+    ok: true,
+    data: (data ?? []) as Array<{ user_id: string; email: string | null; last_sign_in_at: string | null }>,
+  };
 }
 
 export async function createRow<T>(table: string, row: Record<string, unknown>): Promise<Result<T>> {

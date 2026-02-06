@@ -1,8 +1,8 @@
 import { Link, useSearchParams } from "react-router";
 import type { Route } from "./+types/login";
-import { signInWithGoogle } from "../utils/supabase";
+import { signInWithGoogle, signInWithKakao } from "../utils/supabase";
 
-export function meta({}: Route.MetaArgs) {
+export function meta({ }: Route.MetaArgs) {
   return [
     { title: "반려식탁 | 로그인" },
     { name: "description", content: "소셜 로그인으로 시작하세요." },
@@ -15,6 +15,13 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     const result = await signInWithGoogle();
+    if (result.error) {
+      alert("로그인에 실패했습니다: " + result.error);
+    }
+  };
+
+  const handleKakaoLogin = async () => {
+    const result = await signInWithKakao();
     if (result.error) {
       alert("로그인에 실패했습니다: " + result.error);
     }
@@ -65,6 +72,25 @@ export default function Login() {
             <h2 className="text-[18px] font-bold text-[#191F28] text-center mb-6">
               간편 로그인
             </h2>
+
+            {/* Kakao Login Button */}
+            <button
+              type="button"
+              onClick={handleKakaoLogin}
+              className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-[#FEE500] rounded-[16px] hover:bg-[#FDD800] active:scale-[0.98] transition-all duration-200 mb-3"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M12 4C7.029 4 3 7.13 3 10.988c0 2.453 1.633 4.607 4.087 5.824-.18.67-.653 2.428-.748 2.805-.117.467.171.46.36.335.149-.098 2.37-1.61 3.326-2.263.316.043.64.066.975.066 4.971 0 9-3.13 9-6.988C20 7.13 16.971 4 12 4z"
+                  fill="#000000"
+                />
+              </svg>
+              <span className="text-[15px] font-bold text-[#000000]">
+                카카오로 시작하기
+              </span>
+            </button>
 
             {/* Google Login Button */}
             <button

@@ -64,7 +64,7 @@ export default function PostDetail() {
     const [actionError, setActionError] = useState<string | null>(null);
     const [likeLoading, setLikeLoading] = useState(false);
     const [commentLoading, setCommentLoading] = useState(false);
-    const isOwner = userId === post.author.id;
+    const isOwner = userId === post.authorId;
 
     useEffect(() => {
         let alive = true;

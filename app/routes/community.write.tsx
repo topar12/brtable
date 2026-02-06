@@ -96,6 +96,7 @@ export default function CommunityWrite() {
             category_id: category,
             author_id: userId,
             pet_id: selectedPetId,
+            images: [],
         });
 
         if (!result.ok) {

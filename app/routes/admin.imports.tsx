@@ -138,7 +138,10 @@ export default function AdminImports() {
 
       <div className="admin-section">
         <div className="admin-card">
-          <h3 style={{ margin: "0 0 20px 0" }}>데이터 낼 수 없기</h3>
+          <h3 style={{ margin: "0 0 8px 0" }}>데이터 내보내기</h3>
+          <p style={{ margin: "0 0 20px 0", fontSize: "13px", color: "var(--admin-muted)" }}>
+            선택한 테이블의 전체 데이터를 JSON/CSV로 다운로드합니다.
+          </p>
           
           <div className="admin-form-grid">
             <div className="admin-field">
@@ -170,7 +173,7 @@ export default function AdminImports() {
               className="admin-btn-primary"
               onClick={handleExport}
             >
-              📥 낼 수 없기 다운로드
+              📥 내보내기 다운로드
             </button>
           </div>
         </div>
@@ -178,7 +181,10 @@ export default function AdminImports() {
 
       <div className="admin-section">
         <div className="admin-card">
-          <h3 style={{ margin: "0 0 20px 0" }}>데이터 가져오기</h3>
+          <h3 style={{ margin: "0 0 8px 0" }}>데이터 가져오기</h3>
+          <p style={{ margin: "0 0 20px 0", fontSize: "13px", color: "var(--admin-muted)" }}>
+            JSON/CSV를 붙여넣어 일괄 등록합니다. 배치 크기는 한 번에 삽입할 행 수입니다.
+          </p>
           
           <div className="admin-form-grid">
             <div className="admin-field">
@@ -211,6 +217,7 @@ export default function AdminImports() {
                 min="1"
                 max="1000"
               />
+              <span className="admin-helper-text">예: 50 (큰 값일수록 빠르지만 실패 시 영향이 커짐)</span>
             </div>
           </div>
 
